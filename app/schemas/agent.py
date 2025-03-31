@@ -23,6 +23,4 @@ class AgentRequest(BaseModel):
 
 class AgentResponse(BaseModel):
     response: str = Field(..., description="The response from the agent")
-    metadata: Optional[Dict[str, Any]] = Field(default=None, description="Metadata about the agent and response")
-    agent_index: Optional[int] = Field(default=None, description="Index of the agent that generated the response")
-    json_output: Optional[Dict[str, Any]] = Field(default=None, description="JSON parsed output if the response was valid JSON")
+    input_list: Optional[List[Dict[str, Any]]] = Field(default=None, description="Input list generated from the result")

@@ -44,6 +44,7 @@ class AgentService:
         # Create a structured response
         response = {
             "response": result.final_output,
+            "input_list": result.to_input_list()
         }
         
         return response

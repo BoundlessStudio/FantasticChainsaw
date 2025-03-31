@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenAI Agents API Demo</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <h1>OpenAI Agents API Demo</h1>
+    <div class="container">
+        <div class="input-area">
+            <label for="agents-config">Agents Configuration (JSON):</label>
+            <textarea id="agents-config" placeholder='[
+  {
+    "name": "Assistant",
+    "instructions": "You are a helpful assistant who answers questions in a concise manner",
+    "model": "gpt-4o"
+  },
+  {
+    "name": "Analyst",
+    "instructions": "You are a data analyst who provides detailed numerical analysis",
+    "model": "gpt-4o"
+  }
+]'>[
+  {
+    "name": "Assistant",
+    "instructions": "You are a helpful assistant who answers questions in a concise manner",
+    "model": "gpt-4o"
+  }
+]</textarea>
+            
+            <div class="agent-selector">
+                <label for="agent-select">Select Agent:</label>
+                <select id="agent-select">
+                    <option value="0">Assistant (Default)</option>
+                </select>
+            </div>
+            
+            <label for="prompt">Prompt:</label>
+            <textarea id="prompt" placeholder="Enter your prompt here..."></textarea>
+            
+            <button onclick="runAgent()">Run Agent</button>
+        </div>
+        <h2>Response:</h2>
+        <div class="response" id="response-area">Response will appear here...</div>
+    </div>
+
+    <script>
+        // Update agent selection dropdown based on agent configurations
+        function updateAgentSelector() {
+            const agentsConfigText = document.getElementById('agents-config').value;
+            const agentSelect = document.getElementById('agent-select');
+            
+            // Clear existing options
+            agentSelect.innerHTML = '';
+            
+            try {
+                const agents = JSON.parse(agentsConfigText);
+                
+                if (Array.isArray(agents) && agents.length > 0) {
+                    agents.forEach((agent, index) => {
+                        const option = document.createElement('option');
+                        option.value = index;
+                        option.textContent = `${agent.name || 'Agent ' + index}${index === 0 ? ' (Default)' : ''}`;
+                        agentSelect.appendChild(option);
+                    });
+                } else {
+                    // Add a default option if no valid agents
+                    const option = document.createElement('option');
+                    option.value = 0;
+                    option.textContent = 'Default Agent';
+                    agentSelect.appendChild(option);
+                }
+            } catch (error) {
+                console.error('Error parsing agents config:', error);
+                // Add a default option if parsing fails
+                const option = document.createElement('option');
+                option.value = 0;
+                option.textContent = 'Default Agent';
+                agentSelect.appendChild(option);
+            }
+        }
+        
+        // Initialize agent selector
+        updateAgentSelector();
+        
+        // Update agent selector when configuration changes
+        document.getElementById('agents-config').addEventListener('blur', updateAgentSelector);
+        
+        async function runAgent() {
+            const prompt = document.getElementById('prompt').value;
+            const agentsConfigText = document.getElementById('agents-config').value;
+            const selectedAgentIndex = parseInt(document.getElementById('agent-select').value, 10) || 0;
+            
+            const responseArea = document.getElementById('response-area');
+            
+            if (!prompt) return;
+            
+            responseArea.textContent = "Processing...";
+            
+            // Parse agents config JSON
+            let agents = [];
+            
+            try {
+                agents = JSON.parse(agentsConfigText);
+                if (!Array.isArray(agents)) {
+                    throw new Error('Agents config must be an array');
+                }
+            } catch (error) {
+                responseArea.textContent = `Error parsing agents config JSON: ${error.message}`;
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/v1/agents/run', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        prompt: prompt,
+                        agents: agents,
+                        default_agent_index: selectedAgentIndex
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.status >= 400) {
+                    responseArea.textContent = `Error: ${data.detail || 'Unknown error'}`;
+                } else {
+                    // Display the response
+                    responseArea.textContent = data.response || "No response";
+                }
+            } catch (error) {
+                responseArea.textContent = `Error: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>
